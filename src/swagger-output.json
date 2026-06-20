@@ -1,0 +1,435 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Tasteorama API",
+    "description": "Документація API для проєкту Tasteorama",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://tasteorama-project-5-backend.onrender.com",
+      "description": "Продакшн сервер"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Локальний сервер"
+    }
+  ],
+  "tags": [
+    { "name": "Auth" },
+    { "name": "Users" },
+    { "name": "Recipes" },
+    { "name": "Ingredients" },
+    { "name": "Categories" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "username": { "type": "string" },
+          "email": { "type": "string" },
+          "avatar": { "type": "string", "nullable": true },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Реєстрація користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "email", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Користувача створено" },
+          "409": { "description": "Email вже використовується" }
+        }
+      }
+    },
+
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Вхід користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Успішний вхід" },
+          "401": { "description": "Невірні дані" }
+        }
+      }
+    },
+
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Вихід користувача",
+        "responses": {
+          "204": { "description": "Сесію завершено" }
+        }
+      }
+    },
+
+    "/api/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Оновлення сесії",
+        "responses": {
+          "200": { "description": "Сесію оновлено" },
+          "401": { "description": "Сесія недійсна" }
+        }
+      }
+    },
+
+    "/api/users/current": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Поточний користувач",
+        "responses": {
+          "200": { "description": "Дані користувача" }
+        }
+      }
+    },
+
+    "/api/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Список користувачів (пагінація)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Список користувачів" }
+        }
+      },
+
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Оновити користувача",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username"],
+                "properties": {
+                  "username": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Оновлено" }
+        }
+      }
+    },
+
+    "/api/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Користувач з рецептами",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Дані користувача + рецепти" },
+          "404": { "description": "Не знайдено" }
+        }
+      }
+    },
+
+    "/api/users/avatar": {
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Оновлення аватара",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Аватар оновлено" }
+        }
+      }
+    },
+
+    "/api/recipes": {
+      "get": {
+        "tags": ["Recipes"],
+        "summary": "Отримати рецепти з фільтрацією",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "perPage", "in": "query", "schema": { "type": "integer" } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "ingredient",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          { "name": "search", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Список рецептів" }
+        }
+      },
+      "post": {
+        "tags": ["Recipes"],
+        "summary": "Створити власний рецепт",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "category",
+                  "area",
+                  "instructions",
+                  "description",
+                  "thumb",
+                  "time",
+                  "ingredients"
+                ],
+                "properties": {
+                  "title": { "type": "string", "example": "French Omelette" },
+                  "category": { "type": "string", "example": "Breakfast" },
+                  "area": { "type": "string", "example": "French" },
+                  "instructions": {
+                    "type": "string",
+                    "example": "Mix eggs and cook in a pan."
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Simple omelette recipe."
+                  },
+                  "thumb": { "type": "string", "format": "binary" },
+                  "time": { "type": "string", "example": "15 min" },
+                  "ingredients": {
+                    "type": "string",
+                    "example": "[{\"id\":\"507f1f77bcf86cd799439011\",\"measure\":\"2 pcs\"}]"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "category",
+                  "area",
+                  "instructions",
+                  "description",
+                  "thumb",
+                  "time",
+                  "ingredients"
+                ],
+                "properties": {
+                  "title": { "type": "string", "example": "French Omelette" },
+                  "category": { "type": "string", "example": "Breakfast" },
+                  "area": { "type": "string", "example": "French" },
+                  "instructions": {
+                    "type": "string",
+                    "example": "Mix eggs and cook in a pan."
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Simple omelette recipe."
+                  },
+                  "thumb": {
+                    "type": "string",
+                    "example": "https://example.com/recipe.jpg"
+                  },
+                  "time": { "type": "string", "example": "15 min" },
+                  "ingredients": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["id", "measure"],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "507f1f77bcf86cd799439011"
+                        },
+                        "measure": { "type": "string", "example": "2 pcs" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Рецепт створено" },
+          "400": { "description": "Некоректні дані рецепта" },
+          "401": { "description": "Користувач не авторизований" }
+        }
+      }
+    },
+
+    "/api/recipes/own": {
+      "get": {
+        "tags": ["Recipes"],
+        "summary": "Мої рецепти",
+        "responses": {
+          "200": { "description": "Список" }
+        }
+      }
+    },
+
+    "/api/recipes/favorites": {
+      "get": {
+        "tags": ["Recipes"],
+        "summary": "Улюблені рецепти",
+        "responses": {
+          "200": { "description": "Список" }
+        }
+      }
+    },
+
+    "/api/recipes/{id}": {
+      "get": {
+        "tags": ["Recipes"],
+        "summary": "Рецепт по ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Рецепт" },
+          "404": { "description": "Не знайдено" }
+        }
+      }
+    },
+
+    "/api/recipes/favorites/{recipeId}": {
+      "post": {
+        "tags": ["Recipes"],
+        "summary": "Додати в улюблені",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "201": { "description": "Додано" }
+        }
+      },
+      "delete": {
+        "tags": ["Recipes"],
+        "summary": "Видалити з улюблених",
+        "parameters": [
+          {
+            "name": "recipeId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Видалено" }
+        }
+      }
+    },
+
+    "/api/ingredients": {
+      "get": {
+        "tags": ["Ingredients"],
+        "summary": "Список інгредієнтів",
+        "responses": {
+          "200": { "description": "Список" }
+        }
+      }
+    },
+
+    "/api/categories": {
+      "get": {
+        "tags": ["Categories"],
+        "summary": "Список категорій",
+        "responses": {
+          "200": { "description": "Список" }
+        }
+      }
+    }
+  }
+}
